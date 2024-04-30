@@ -1,0 +1,34 @@
+version: '3.3'
+services:
+  semanticlidarros:
+    shm_size: 24G
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+      args:
+        - USER_ID=$USER_ID
+        - USER_NAME=$USER_NAME
+    network_mode: "host"
+    stdin_open: true # docker run -i
+    tty: true        # docker run -t
+    ipc: "host"
+    image: semanticlidarros:0.1
+    container_name: Semantic_LiDAR_THAB_ROS
+    devices:
+      # sharing graphics driver (http://wiki.ros.org/docker/Tutorials/Hardware%20Acceleration#nvidia-docker2)
+      - "/dev/dri:/dev/dri"
+    
+    # 'xhost +local:docker' must be done in terminal outside of docker container
+    environment:
+      - DISPLAY=$DISPLAY
+      - QT_X11_NO_MITSHM=1
+      - XAUTHORITY=/tmp/.docker.xauth
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - ~/.Xauthority:/root/.Xauthority
+      - ./dataset:/home/${USER_NAME}/data
+      - ./src:/home/${USER_NAME}/repos
+      - ./ros2_ws:/home/${USER_NAME}/ros2_ws
+    entrypoint: /home/appuser/entrypoint.sh
+    privileged: true
+    runtime: nvidia
