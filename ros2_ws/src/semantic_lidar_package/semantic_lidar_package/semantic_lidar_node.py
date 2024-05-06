@@ -3,7 +3,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2, PointField, Image
 import std_msgs.msg as std_msgs
 import numpy as np
-from ouster import pcap, client
+from ouster import pcap, client, osf
 from contextlib import closing
 import cv2
 import torch
@@ -11,30 +11,43 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
 import torch
+from sklearn.cluster import DBSCAN
+from std_msgs.msg import Float32MultiArray
 
 color_map = {
   0 : [0, 0, 0],
   1 : [245, 150, 100],
   2 : [245, 230, 100],
   3 : [150, 60, 30],
-  4 : [180, 30, 80],
-  5 : [255, 0, 0],
+  4 : [245, 150, 100],#[180, 30, 80],
+  5 : [245, 150, 100],#[255, 0, 0],
   6: [30, 30, 255],
   7: [200, 40, 255],
   8: [90, 30, 150],
-  9: [125,125,125],#[255, 0, 255],
-  10: [255, 150, 255],
-  11: [75, 0, 75],
-  12: [75, 0, 175],
+  9: [125,125,125],
+  10: [125,125,125],#[255, 150, 255],
+  11: [125,125,125],#[75, 0, 75],
+  12: [125,125,125],#[75, 0, 175],
   13: [0, 200, 255],
-  14: [50, 120, 255],
+  14: [0, 200, 255],#[50, 120, 255],
   15: [0, 175, 0],
   16: [0, 60, 135],
   17: [80, 240, 150],
-  18: [150, 240, 255],
+  18: [0, 60, 135],#[150, 240, 255],
   19: [250, 250, 250],
   20: [0, 250, 0]
 }
+
+# Create the custom color map
+custom_colormap = np.zeros((256, 1, 3), dtype=np.uint8)
+
+for i in range(256):
+    if i in color_map:
+        custom_colormap[i, 0, :] = color_map[i]
+    else:
+        # If the index is not defined in the color map, set it to black
+        custom_colormap[i, 0, :] = [0, 0, 0]
+custom_colormap = custom_colormap[...,::-1]
 
 def remove_batchnorm(model):
     # Create a new Sequential module to reconstruct the model architecture without batchnorm
@@ -353,31 +366,45 @@ class OusterPcapReaderNode(Node):
     def __init__(self):
         super().__init__('ouster_pcap_reader')
         self.pointcloud_publisher = self.create_publisher(PointCloud2, '/ouster/point_cloud', 1)
-        self.reflectivity_publisher = self.create_publisher(Image, '/ouster/reflectivity_image', 1)
-        self.normal_publisher = self.create_publisher(Image, '/ouster/normal_image', 1)
+        self.publisher_vru_array = self.create_publisher(Float32MultiArray, '/ouster/vru_array', 10)
+        self.publisher_sensor_pose = self.create_publisher(Float32MultiArray, '/ouster/sensor_pose', 10)
         self.semseg_publisher = self.create_publisher(Image, '/ouster/segmentation_image', 1)
-        self.metadata_path = '/home/appuser/data/test/OS-2-128-992317000331-2048x10.json'
-        self.pcap_path = '/home/appuser/data/test/OS-2-128-992317000331-2048x10.pcap'
+
+        self.metadata_path = '/home/appuser/data/Ouster/OS-2-128-992317000331-2048x10.json'
+        self.pcap_path = '/home/appuser/data/Ouster/OS-2-128-992317000331-2048x10.osf'
         with open(self.metadata_path, 'r') as f:
             self.metadata = client.SensorInfo(f.read())
-        self.device = torch.device("gpu") # if torch.cuda.is_available() else "cpu")
+        self.device = torch.device("cuda") # if torch.cuda.is_available() else "cpu")
         self.nocs_model = SemanticNetworkWithFPN(resnet_type='resnet34', meta_channel_dim=6, num_classes=20)
         self.nocs_model.load_state_dict(torch.load("/home/appuser/data//model_zoo/THAB_RN34/model_final.pth", map_location=self.device))
 
         # Training loop
         self.nocs_model.to(self.device)
         self.nocs_model.eval()
+
+        # DBSCAN for clustering
+        eps = 0.33  # Maximum distance between two samples for them to be considered as in the same neighborhood
+        min_samples = 32  # The number of samples in a neighborhood for a point to be considered as a core point
+
+        self.dbscan = DBSCAN(eps=eps, min_samples=min_samples)
         
 
     def run(self):
         if isinstance(self.pcap_path, type(None)):
             load_scan = lambda: client.Scans.stream("fe80::4ce2:9d59:9f63:a9e0", 7502, complete=False, metadata=self.metadata)
         else:
-            source = pcap.Pcap(self.pcap_path, self.metadata)
-            load_scan = lambda:  client.Scans(source)
+            #source = pcap.Pcap(self.pcap_path, self.metadata)
+            #load_scan = lambda:  client.Scans(source)
+            load_scan = lambda:  osf.Scans(self.pcap_path)
         
         with closing(load_scan()) as stream:
             for scan in stream:
+                # Get sensor pose from osf
+                T = scan.pose[1023,...]
+                msg = Float32MultiArray()
+                msg.data = T.flatten().tolist()
+                self.publisher_sensor_pose.publish(msg)
+
                 xyzlut = client.XYZLut(self.metadata)
 
                 xyz = xyzlut(scan)
@@ -389,31 +416,6 @@ class OusterPcapReaderNode(Node):
                 range_img = np.linalg.norm(xyz,axis=-1)
                 normals = build_normal_xyz(xyz)
                 normal_img = np.uint8(255*(normals+1)/2)
-
-                # Publish reflectivity image
-                reflectivity_msg = Image()
-                reflectivity_msg.header.stamp = self.get_clock().now().to_msg()
-                reflectivity_msg.header.frame_id = 'ouster_frame'
-                reflectivity_msg.height = reflectivity_img.shape[0]
-                reflectivity_msg.width = reflectivity_img.shape[1]
-                reflectivity_msg.encoding = 'mono8'
-                reflectivity_msg.is_bigendian = False
-                reflectivity_msg.step = reflectivity_img.shape[1]
-                reflectivity_msg.data = reflectivity_img.astype(np.uint8).tobytes()
-                self.reflectivity_publisher.publish(reflectivity_msg)
-                self.get_logger().info('Published a reflectivity image')
-
-                normal_msg = Image()
-                normal_msg.header.stamp = self.get_clock().now().to_msg()
-                normal_msg.header.frame_id = 'ouster_frame'
-                normal_msg.height = normal_img.shape[0]
-                normal_msg.width = normal_img.shape[1]
-                normal_msg.encoding = 'rgb8'
-                normal_msg.is_bigendian = False
-                normal_msg.step = normal_img.shape[1]
-                normal_msg.data = normal_img.astype(np.uint8).tobytes()
-                self.normal_publisher.publish(normal_msg)
-                self.get_logger().info('Published a normal image')
 
                 reflectivity_img = reflectivity_img/255.0
                 reflectivity_img =  torch.as_tensor(reflectivity_img[...,None].transpose(2, 0, 1).astype("float32"))
@@ -429,7 +431,9 @@ class OusterPcapReaderNode(Node):
                 semseg_img = torch.argmax(outputs_semantic,dim=1)
          
                 semantics_pred = (semseg_img).permute(0, 1, 2)[0,...].cpu().detach().numpy()
-                prev_sem_pred = visualize_semantic_segmentation_cv2(semantics_pred, class_colors=color_map)[...,::-1]
+                idx_VRUs = np.where(semantics_pred==6)
+                prev_sem_pred = cv2.applyColorMap(np.uint8(semantics_pred), custom_colormap)
+                #prev_sem_pred = visualize_semantic_segmentation_cv2(semantics_pred, class_colors=color_map)[...,::-1]
 
                 segment_msg = Image()
                 segment_msg.header.stamp = self.get_clock().now().to_msg()
@@ -442,16 +446,25 @@ class OusterPcapReaderNode(Node):
                 segment_msg.data = prev_sem_pred.astype(np.uint8).tobytes()
                 self.semseg_publisher.publish(segment_msg)
                 self.get_logger().info('Published a segmentation image')
-                cv2.imshow("tmp", prev_sem_pred.astype(np.uint8))
-                cv2.waitKey(1)
 
-                # Publish point cloud
-                #img = cv2.applyColorMap(np.uint8(reflectivity_img), cv2.COLORMAP_JET)
+                # # Transform point cloud to world
+                # # Extend the point cloud with a fourth column of ones for homogeneous coordinates
+                # xyz_h = np.concatenate((xyz, np.ones((xyz.shape[0], xyz.shape[1], 1))), axis=2)
+
+                # # Perform the transformation by matrix multiplication
+                # xyz_hT = np.matmul(T, xyz_h.reshape((-1, 4, 1))).reshape((-1, 4))[:, :3]
+
+                # # Reshape the transformed point cloud back to its original shape
+                # xyz = xyz_hT.reshape(xyz.shape)
+
+                #Publish point cloud
                 rgba = cv2.cvtColor(prev_sem_pred, cv2.COLOR_RGB2RGBA)
                 pcl2 = np.concatenate([xyz,rgba/255.0],axis=-1) 
                 pcl2 = pcl2.reshape(-1, pcl2.shape[-1])
                 self.pointcloud_publisher.publish(point_cloud(pcl2, 'map', self.get_clock().now().to_msg()))
                 self.get_logger().info('Published a point cloud')
+
+  
 
 def main(args=None):
     rclpy.init(args=args)
