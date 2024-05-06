@@ -24,10 +24,24 @@ docker-compose build --no-cache
 docker-compose up -d
 
 # Stop the container
-docker compose down
+docker-compose down
 ```
 
-###
+### Set Up in VS Code
+In VS Code open two terminals:
+```bash
+# Terminal 1, start RVIZ
+appuser@taurus:~/ros2_ws$ source /opt/ros/humble/setup.bash
+appuser@taurus:~/ros2_ws$ source install/local_setup.bash
+appuser@taurus:~/ros2_ws$ ros2 run rviz2 rviz2
+
+# Terminal 2, start SemanticLiDAR Node
+appuser@taurus:~/ros2_ws$ source /opt/ros/humble/setup.bash
+appuser@taurus:~/ros2_ws$ source install/local_setup.bash
+appuser@taurus:~/ros2_ws$ colcon build
+appuser@taurus:~/ros2_ws$ ros2 run semantic_lidar_package semantic_lidar_node
+```
+### Model Zoo
 You can download pre-trained models from our model zoo:
 
 | Dataset | Backbone | Parameters | Inference Time¹ | mIoU² | Status 
