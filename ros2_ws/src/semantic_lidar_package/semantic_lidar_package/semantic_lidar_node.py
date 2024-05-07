@@ -10,8 +10,6 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
-import torch
-from sklearn.cluster import DBSCAN
 from std_msgs.msg import Float32MultiArray
 
 color_map = {
@@ -280,54 +278,39 @@ class SemanticNetworkWithFPN(nn.Module):#
         
         return x_semantics
 
-def visualize_semantic_segmentation_cv2(mask, class_colors):
-    """
-    Visualize semantic segmentation mask using class colors with cv2.
 
-    Parameters:
-    - mask: 2D NumPy array containing class IDs for each pixel.
-    - class_colors: Dictionary mapping class IDs to BGR colors.
-
-    Returns:
-    - visualization: Colored semantic segmentation image in BGR format.
-    """
-    h, w = mask.shape
-    visualization = np.zeros((h, w, 3), dtype=np.uint8)
-
-    for class_id, color in class_colors.items():
-        visualization[mask == class_id] = color
-
-    return visualization 
-
-def build_normal_xyz(xyz, norm_factor=0.25, ksize = 3):
+def build_normal_xyz(xyz, norm_factor=0.25, device='cuda'):
     '''
-    @param xyz: ndarray with shape (h,w,3) containing a stagged point cloud
-    @param norm_factor: int for the smoothing in Schaar filter
+    @param xyz: tensor with shape (h,w,3) containing a staggered point cloud
+    @param norm_factor: int for the smoothing in Scharr filter
+    @param device: device to move computation to (default: 'cuda')
     '''
-    x = xyz[...,0]
-    y = xyz[...,1]
-    z = xyz[...,2]
+    # Move input tensor to device
+    xyz = xyz.to(device)
 
-    Sxx = cv2.Scharr(x.astype(np.float32), cv2.CV_32FC1, 1, 0, scale=1.0/norm_factor)    
-    Sxy = cv2.Scharr(x.astype(np.float32), cv2.CV_32FC1, 0, 1, scale=1.0/norm_factor)
+    x = xyz[:,0:1,...]
+    y = xyz[:,1:2,...]
+    z = xyz[:,2:3,...]
 
-    Syx = cv2.Scharr(y.astype(np.float32), cv2.CV_32FC1, 1, 0, scale=1.0/norm_factor)    
-    Syy = cv2.Scharr(y.astype(np.float32), cv2.CV_32FC1, 0, 1, scale=1.0/norm_factor)
 
-    Szx = cv2.Scharr(z.astype(np.float32), cv2.CV_32FC1, 1, 0, scale=1.0/norm_factor)    
-    Szy = cv2.Scharr(z.astype(np.float32), cv2.CV_32FC1, 0, 1, scale=1.0/norm_factor)
+    # Compute partial derivatives using Scharr filter
+    Sxx = F.conv2d(x, torch.tensor([[[[3, 0, -3], [10, 0, -10], [3, 0, -3]]]], dtype=torch.float32).to(device), stride=1, padding=1) / norm_factor
+    Sxy = F.conv2d(x, torch.tensor([[[[3, 10, 3], [0, 0, 0], [-3, -10, -3]]]], dtype=torch.float32).to(device), stride=1, padding=1) / norm_factor
 
-    #build cross product
-    normal = -np.dstack((Syx*Szy - Szx*Syy,
-                        Szx*Sxy - Szy*Sxx,
-                        Sxx*Syy - Syx*Sxy))
+    Syx = F.conv2d(y, torch.tensor([[[[3, 0, -3], [10, 0, -10], [3, 0, -3]]]], dtype=torch.float32).to(device), stride=1, padding=1) / norm_factor
+    Syy = F.conv2d(y, torch.tensor([[[[3, 10, 3], [0, 0, 0], [-3, -10, -3]]]], dtype=torch.float32).to(device), stride=1, padding=1) / norm_factor
 
-    # normalize corss product
-    n = np.linalg.norm(normal, axis=2)+1e-10
-    normal[:, :, 0] /= n
-    normal[:, :, 1] /= n
-    normal[:, :, 2] /= n
-    
+    Szx = F.conv2d(z, torch.tensor([[[[3, 0, -3], [10, 0, -10], [3, 0, -3]]]], dtype=torch.float32).to(device), stride=1, padding=1) / norm_factor
+    Szy = F.conv2d(z, torch.tensor([[[[3, 10, 3], [0, 0, 0], [-3, -10, -3]]]], dtype=torch.float32).to(device), stride=1, padding=1) / norm_factor
+
+    # Build cross product
+    normal = -torch.cat((Syx * Szy - Szx * Syy,
+                         Szx * Sxy - Szy * Sxx,
+                         Sxx * Syy - Syx * Sxy), dim=1)
+
+    # Normalize cross product
+    n = torch.norm(normal, dim=1, keepdim=True) + 1e-10
+    normal /= n
     return normal
 
 def point_cloud(points, parent_frame, stamp):
@@ -365,13 +348,11 @@ def point_cloud(points, parent_frame, stamp):
 class OusterPcapReaderNode(Node):
     def __init__(self):
         super().__init__('ouster_pcap_reader')
-        self.pointcloud_publisher = self.create_publisher(PointCloud2, '/ouster/point_cloud', 1)
-        self.publisher_vru_array = self.create_publisher(Float32MultiArray, '/ouster/vru_array', 10)
-        self.publisher_sensor_pose = self.create_publisher(Float32MultiArray, '/ouster/sensor_pose', 10)
+        self.pointcloud_publisher = self.create_publisher(PointCloud2, '/ouster/semantic_point_cloud', 1)
         self.semseg_publisher = self.create_publisher(Image, '/ouster/segmentation_image', 1)
 
-        self.metadata_path = '/home/appuser/data/Ouster/OS-2-128-992317000331-2048x10.json'
-        self.pcap_path = '/home/appuser/data/Ouster/OS-2-128-992317000331-2048x10.osf'
+        self.metadata_path = '/home/appuser/data/test4/OS-2-128-992317000331-2048x10.json'
+        self.pcap_path = '/home/appuser/data/test4/OS-2-128-992317000331-2048x10.osf'
         with open(self.metadata_path, 'r') as f:
             self.metadata = client.SensorInfo(f.read())
         self.device = torch.device("cuda") # if torch.cuda.is_available() else "cpu")
@@ -382,11 +363,7 @@ class OusterPcapReaderNode(Node):
         self.nocs_model.to(self.device)
         self.nocs_model.eval()
 
-        # DBSCAN for clustering
-        eps = 0.33  # Maximum distance between two samples for them to be considered as in the same neighborhood
-        min_samples = 32  # The number of samples in a neighborhood for a point to be considered as a core point
 
-        self.dbscan = DBSCAN(eps=eps, min_samples=min_samples)
         
 
     def run(self):
@@ -397,15 +374,18 @@ class OusterPcapReaderNode(Node):
             #load_scan = lambda:  client.Scans(source)
             load_scan = lambda:  osf.Scans(self.pcap_path)
         
+        xyzlut = client.XYZLut(self.metadata)
+
         with closing(load_scan()) as stream:
             for scan in stream:
+                start_time = self.get_clock().now()
                 # Get sensor pose from osf
-                T = scan.pose[1023,...]
-                msg = Float32MultiArray()
-                msg.data = T.flatten().tolist()
-                self.publisher_sensor_pose.publish(msg)
+                #T = scan.pose[1023,...]
+                #msg = Float32MultiArray()
+                #msg.data = T.flatten().tolist()
+                #self.publisher_sensor_pose.publish(msg)
 
-                xyzlut = client.XYZLut(self.metadata)
+                start_time_load_data = self.get_clock().now()
 
                 xyz = xyzlut(scan)
                 xyz = client.destagger(self.metadata, xyz)
@@ -413,39 +393,55 @@ class OusterPcapReaderNode(Node):
                 reflectivity_field = scan.field(client.ChanField.REFLECTIVITY)
                 reflectivity_img = client.destagger(stream.metadata, reflectivity_field)
                 
-                range_img = np.linalg.norm(xyz,axis=-1)
-                normals = build_normal_xyz(xyz)
-                normal_img = np.uint8(255*(normals+1)/2)
+                end_time_load_data = self.get_clock().now()
+                self.get_logger().info('Cycle Time Read Data: {}, {}'.format(end_time_load_data-start_time_load_data, end_time_load_data-start_time))
 
+
+                start_time_inference = self.get_clock().now()
                 reflectivity_img = reflectivity_img/255.0
                 reflectivity_img =  torch.as_tensor(reflectivity_img[...,None].transpose(2, 0, 1).astype("float32"))
-                range_img =  torch.as_tensor(range_img[...,None].transpose(2, 0, 1).astype("float32"))
-                xyz_ =  torch.as_tensor(xyz[...,0:3].transpose(2, 0, 1).astype("float32"))
 
-                normals =  torch.as_tensor(normals.transpose(2, 0, 1).astype("float32"))
+                xyz_ =  torch.as_tensor(xyz[...,0:3].transpose(2, 0, 1).astype("float32"))
                 
-                range_img, reflectivity, xyz_, normals = range_img[None,...].to(self.device), reflectivity_img[None,...].to(self.device), xyz_[None,...].to(self.device), normals[None,...].to(self.device)
+                
+                reflectivity, xyz_,  = reflectivity_img[None,...].to(self.device), xyz_[None,...].to(self.device)
+
+                normals = build_normal_xyz(xyz_, norm_factor=0.25, device='cuda')
+                range_img = torch.norm(xyz_, dim=1, keepdim=True) #+ 1e-10
 
                 outputs_semantic = self.nocs_model(torch.cat([range_img, reflectivity],axis=1), torch.cat([xyz_, normals],axis=1))
 
                 semseg_img = torch.argmax(outputs_semantic,dim=1)
-         
+
+                # Waits for everything to finish running
+                torch.cuda.synchronize()
+
+                end_time_inference = self.get_clock().now()
+                self.get_logger().info('Cycle Time Inference: {} {}'.format(end_time_inference-start_time_inference, end_time_inference-start_time))
+
+                start_time_vis= self.get_clock().now()
                 semantics_pred = (semseg_img).permute(0, 1, 2)[0,...].cpu().detach().numpy()
                 idx_VRUs = np.where(semantics_pred==6)
                 prev_sem_pred = cv2.applyColorMap(np.uint8(semantics_pred), custom_colormap)
-                #prev_sem_pred = visualize_semantic_segmentation_cv2(semantics_pred, class_colors=color_map)[...,::-1]
+                end_time_vis= self.get_clock().now()
+                self.get_logger().info('Cycle Time Vis: {} {}'.format(end_time_vis-start_time_vis, end_time_vis-start_time))
 
+                start_time_img_pub= self.get_clock().now()
+                prev_sem_pred_ = cv2.resize(prev_sem_pred,(1024,64), interpolation = cv2.INTER_NEAREST)
                 segment_msg = Image()
                 segment_msg.header.stamp = self.get_clock().now().to_msg()
                 segment_msg.header.frame_id = 'ouster_frame'
-                segment_msg.height = prev_sem_pred.shape[0]
-                segment_msg.width = prev_sem_pred.shape[1]
+                segment_msg.height = prev_sem_pred_.shape[0]
+                segment_msg.width = prev_sem_pred_.shape[1]
                 segment_msg.encoding = 'rgb8'
-                segment_msg.is_bigendian = False
-                segment_msg.step = prev_sem_pred.shape[1]
-                segment_msg.data = prev_sem_pred.astype(np.uint8).tobytes()
+                segment_msg.is_bigendian = True
+                segment_msg.step = prev_sem_pred_.shape[1]
+                segment_msg.data = prev_sem_pred_.astype(np.uint8).tobytes()
                 self.semseg_publisher.publish(segment_msg)
-                self.get_logger().info('Published a segmentation image')
+                #self.get_logger().info('Published a segmentation image')
+                end_time_img_pub= self.get_clock().now()
+                self.get_logger().info('Cycle Time Publish Image: {} {}'.format(end_time_img_pub-start_time_img_pub, end_time_img_pub-start_time))
+
 
                 # # Transform point cloud to world
                 # # Extend the point cloud with a fourth column of ones for homogeneous coordinates
@@ -458,11 +454,18 @@ class OusterPcapReaderNode(Node):
                 # xyz = xyz_hT.reshape(xyz.shape)
 
                 #Publish point cloud
+                start_time_pc_pub= self.get_clock().now()
                 rgba = cv2.cvtColor(prev_sem_pred, cv2.COLOR_RGB2RGBA)
                 pcl2 = np.concatenate([xyz,rgba/255.0],axis=-1) 
                 pcl2 = pcl2.reshape(-1, pcl2.shape[-1])
                 self.pointcloud_publisher.publish(point_cloud(pcl2, 'map', self.get_clock().now().to_msg()))
-                self.get_logger().info('Published a point cloud')
+                #self.get_logger().info('Published a point cloud')
+                
+                end_time_pc_pub= self.get_clock().now()
+                end_time = self.get_clock().now()
+                
+                self.get_logger().info('Cycle Time Publish PC: {} {}'.format(end_time_pc_pub-start_time_pc_pub, end_time-start_time))
+
 
   
 
