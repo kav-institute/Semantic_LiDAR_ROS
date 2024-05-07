@@ -33,7 +33,7 @@ In VS Code open two terminals:
 # Terminal 1, start RVIZ
 appuser@taurus:~/ros2_ws$ source /opt/ros/humble/setup.bash
 appuser@taurus:~/ros2_ws$ source install/local_setup.bash
-appuser@taurus:~/ros2_ws$ ros2 run rviz2 rviz2
+appuser@taurus:~/ros2_ws$ ros2 run rviz2 rviz2 -d semantic_lidar.rviz
 
 # Terminal 2, start SemanticLiDAR Node
 appuser@taurus:~/ros2_ws$ source /opt/ros/humble/setup.bash
