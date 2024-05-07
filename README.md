@@ -1,8 +1,8 @@
 # Semantic_LiDAR_ROS
 
 A docker container with ROS2 and a ROS2 Package for LiDAR semantic segmentation
+![rgbImage](images/rviz_screenshot_2024_05_06-07_43_07.png)
 
-[![Watch the video](https://cdn.discordapp.com/attachments/709432890458374204/1219546130115727390/image.png?ex=66309bd7&is=661e26d7&hm=c48cbefebdc49abcba54b0350bd200d4fae5accf0a629c695a429e82c0eac7f9&)](https://drive.google.com/file/d/1R7l4302yjyHZzcCP7Cm9vKr7sSnPDih_/view)
 ## Development environment:
 
 ### VS-Code:
