@@ -9,7 +9,6 @@ A docker container with ROS2 and a ROS2 Package for LiDAR semantic segmentation
 The project is designed to be delevoped within vs-code IDE using remote container development.
 
 ### Setup Docker Container
-In docker-compse.yaml all parameters are defined.
 ```bash
 # Enable xhost in the terminal
 sudo xhost +
@@ -51,7 +50,7 @@ You can download pre-trained models from our model zoo:
 |SemanticTHAB³| [[THAB_RN34]](https://drive.google.com/drive/folders/1tmyw1RNRtcm3tHld2owxVHm1-2Fvrnzn?usp=sharing) |  28 M      |  14ms  | 72%  | $${\color{green}Online}$$ 
 
 For this demo we use the THAB_RN34.
-Download the .pth file to
+Download the .pth file to:
 ```bash
 ├── dataset
 │   ├── model_zoo
