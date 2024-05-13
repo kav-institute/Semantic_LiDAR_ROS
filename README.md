@@ -29,6 +29,10 @@ docker-compose down
 ### Set Up in VS Code
 In VS Code open two terminals:
 ```bash
+# Tune DDS and Network
+sudo sysctl -w net.core.rmem_max=536870912 net.core.rmem_default=536870912
+sudo sysctl -w net.core.wmem_max=536870912 net.core.wmem_default=536870912
+
 # Terminal 1, start RVIZ
 appuser@taurus:~/ros2_ws$ source /opt/ros/humble/setup.bash
 appuser@taurus:~/ros2_ws$ source install/local_setup.bash
