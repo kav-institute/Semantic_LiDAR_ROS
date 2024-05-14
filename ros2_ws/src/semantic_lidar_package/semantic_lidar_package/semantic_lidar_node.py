@@ -121,16 +121,16 @@ class SemanticNetworkWithFPN(nn.Module):#
         self.attention = attention
         # Load pre-trained ResNet model
         if resnet_type == 'resnet18':
-            self.resnet = models.resnet18(pretrained=True)
+            self.resnet = models.resnet18(pretrained=False)
             base_channels = 512  # Number of channels in the last layer of ResNet18
         elif resnet_type == 'resnet34':
-            self.resnet = models.resnet34(pretrained=True)
+            self.resnet = models.resnet34(pretrained=False)
             base_channels = 512  # Number of channels in the last layer of ResNet34
         elif resnet_type == 'resnet50':
-            self.resnet = models.resnet50(pretrained=True)
+            self.resnet = models.resnet50(pretrained=False)
             base_channels = 2048  # Number of channels in the last layer of ResNet50
         elif resnet_type == 'resnet101':
-            self.resnet = models.resnet101(pretrained=True)
+            self.resnet = models.resnet101(pretrained=False)
             base_channels = 2048  # Number of channels in the last layer of ResNet101
 
         else:
