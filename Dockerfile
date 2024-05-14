@@ -116,7 +116,7 @@ RUN sudo apt-get update && sudo apt-get install -y \
   libcanberra-gtk3-module \
   && sudo rm -rf /var/lib/apt/lists/*
 
-
+RUN mkdir -p /home/appuser/.vscode
 RUN mkdir -p /home/appuser/ros2_ws/tmp
 RUN mkdir -p /home/appuser/ros2_ws/src && cd /home/appuser/ros2_ws/src
 WORKDIR /home/appuser/ros2_ws/src
@@ -132,6 +132,9 @@ RUN sudo apt-get update && sudo apt-get -y install g++
 
 
 COPY entrypoint.sh /home/appuser/entrypoint.sh
+RUN sudo chmod +x /home/appuser/entrypoint.sh
+
+ENTRYPOINT [ "bash" ]
 RUN sudo chmod +x /home/appuser/entrypoint.sh
 
 ENTRYPOINT [ "bash" ]
