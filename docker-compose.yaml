@@ -29,6 +29,7 @@ services:
       - ./dataset:/home/${USER_NAME}/data
       - ./src:/home/${USER_NAME}/repos
       - ./ros2_ws:/home/${USER_NAME}/ros2_ws
+      - ./.vscode:/home/${USER_NAME}/.vscode
     entrypoint: /home/appuser/entrypoint.sh
     privileged: true
     runtime: nvidia
