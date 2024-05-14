@@ -16,5 +16,10 @@ colcon build
 echo "--- Additional installations..."
 pip install opencv-python
 apt-get install libdynamicedt3d-dev
+
+# Tune DDS and Network
+echo "--- Tune DDS and Network ..."
+sudo sysctl -w net.core.rmem_max=536870912 net.core.rmem_default=536870912
+sudo sysctl -w net.core.wmem_max=536870912 net.core.wmem_default=536870912
 echo "--- Additional container setup completed, ready for work..."
 tail -F /dev/null
