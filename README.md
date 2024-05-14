@@ -27,19 +27,19 @@ docker-compose down
 ```
 
 ### Set Up in VS Code
-# Possibility 1: (Preferred)
+#### Possibility 1: (Preferred)
 
-# 1. Step: Executing the first task "rviz start" to start rviz 
+#### 1. Step: Executing the first task "rviz start" to start rviz 
 Hit menu item "Terminal" and chose "Run Task...":
  -> execute the task "rviz start" -> Rviz window opens 
  
-# 2. Step: Executing second task "SemanticLiDAR start" to start the Semantic Node: 
+#### 2. Step: Executing second task "SemanticLiDAR start" to start the Semantic Node: 
 Hit menu item "Terminal" and chose "Run Task...":
  -> execute the task "SemanticLiDAR start" -> Rviz window shows the output of the semantic node
 
 
 
-# Possibility 2: 
+#### Possibility 2: 
 In VS Code open two terminals:
 ```bash
 # Terminal 1, start RVIZ
