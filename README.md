@@ -27,16 +27,25 @@ docker-compose down
 ```
 
 ### Set Up in VS Code
+# Possibility 1: (Preferred)
+
+# 1. Step: Executing the first task "rviz start" to start rviz 
+Hit menu item "Terminal" and chose "Run Task...":
+ -> execute the task "rviz start" -> Rviz window opens 
+ 
+# 2. Step: Executing second task "SemanticLiDAR start" to start the Semantic Node: 
+Hit menu item "Terminal" and chose "Run Task...":
+ -> execute the task "SemanticLiDAR start" -> Rviz window shows the output of the semantic node
+
+
+
+# Possibility 2: 
 In VS Code open two terminals:
 ```bash
-# Tune DDS and Network
-sudo sysctl -w net.core.rmem_max=536870912 net.core.rmem_default=536870912
-sudo sysctl -w net.core.wmem_max=536870912 net.core.wmem_default=536870912
-
 # Terminal 1, start RVIZ
 appuser@taurus:~/ros2_ws$ source /opt/ros/humble/setup.bash
 appuser@taurus:~/ros2_ws$ source install/local_setup.bash
-appuser@taurus:~/ros2_ws$ ros2 run rviz2 rviz2 -d semantic_lidar.rviz
+appuser@taurus:~/ros2_ws$ ros2 run rviz2 rviz2 -d semantic_lidar.rvizsemantic
 
 # Terminal 2, start SemanticLiDAR Node
 appuser@taurus:~/ros2_ws$ source /opt/ros/humble/setup.bash
@@ -61,4 +70,3 @@ Download the .pth file to:
 │   │   └── THAB_RN34
 │   │   │   └── model_final.pth
 ```
-
