@@ -10,28 +10,30 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
-from std_msgs.msg import Float32MultiArray
+import time
+from visualization_msgs.msg import Marker
+
 
 color_map = {
   0 : [0, 0, 0],
   1 : [245, 150, 100],
   2 : [245, 230, 100],
   3 : [150, 60, 30],
-  4 : [245, 150, 100],#[180, 30, 80],
-  5 : [245, 150, 100],#[255, 0, 0],
+  4 : [180, 30, 80],
+  5 : [255, 0, 0],
   6: [30, 30, 255],
   7: [200, 40, 255],
   8: [90, 30, 150],
   9: [125,125,125],
-  10: [125,125,125],#[255, 150, 255],
-  11: [125,125,125],#[75, 0, 75],
-  12: [125,125,125],#[75, 0, 175],
+  10: [255, 150, 255],
+  11: [75, 0, 75],
+  12: [75, 0, 175],
   13: [0, 200, 255],
-  14: [0, 200, 255],#[50, 120, 255],
+  14: [50, 120, 255],
   15: [0, 175, 0],
   16: [0, 60, 135],
   17: [80, 240, 150],
-  18: [0, 60, 135],#[150, 240, 255],
+  18: [150, 240, 255],
   19: [250, 250, 250],
   20: [0, 250, 0]
 }
@@ -325,34 +327,35 @@ def point_cloud(points, parent_frame, stamp):
     dtype = np.float32
     itemsize = np.dtype(dtype).itemsize
 
-    data = points.astype(dtype).tobytes()
-
+    data = points.astype(dtype)
     fields = [PointField(
         name=n, offset=i*itemsize, datatype=ros_dtype, count=1)
-        for i, n in enumerate('xyzrgba')]
+        for i, n in enumerate('xyzrgb')]
 
     header = std_msgs.Header(frame_id=parent_frame, stamp=stamp)
 
-    return PointCloud2(
+    msg = PointCloud2(
         header=header,
         height=1,
         width=points.shape[0],
         is_dense=True,
         is_bigendian=False,
         fields=fields,
-        point_step=(itemsize * 7),
-        row_step=(itemsize * 7 * points.shape[0]),
-        data=data
+        point_step=(itemsize * 6),
+        row_step=(itemsize * 6 * points.shape[0]),
     )
+    msg._data = data#.tobytes()
+    return msg
 
 class OusterPcapReaderNode(Node):
     def __init__(self):
         super().__init__('ouster_pcap_reader')
         self.pointcloud_publisher = self.create_publisher(PointCloud2, '/ouster/semantic_point_cloud', 1)
         self.semseg_publisher = self.create_publisher(Image, '/ouster/segmentation_image', 1)
+        self.mesh_publisher = self.create_publisher(Marker, "/visualization_marker", 1)
 
-        self.metadata_path = '/home/appuser/data/test4/OS-2-128-992317000331-2048x10.json'
-        self.pcap_path = '/home/appuser/data/test4/OS-2-128-992317000331-2048x10.osf'
+        self.metadata_path = '/home/appuser/data/Ouster/OS-2-128-992317000331-2048x10.json'
+        self.pcap_path = '/home/appuser/data/Ouster/OS-2-128-992317000331-2048x10.osf'
         with open(self.metadata_path, 'r') as f:
             self.metadata = client.SensorInfo(f.read())
         self.device = torch.device("cuda") # if torch.cuda.is_available() else "cpu")
@@ -362,6 +365,33 @@ class OusterPcapReaderNode(Node):
         # Training loop
         self.nocs_model.to(self.device)
         self.nocs_model.eval()
+
+        # # load mesh
+        self.mesh_msg = Marker()
+        self.mesh_msg.id = 1
+        self.mesh_msg.mesh_resource = 'file:///home/appuser/ros2_ws/src/semantic_lidar_package/meshes/insignia_raw_v1/mesh_medpoly_v2.obj'#'package://semantic_lidar/resource/insignia_raw_v1/mesh_medpoly.obj'
+        self.mesh_msg.mesh_use_embedded_materials = True   # Need this to use textures for mesh
+        self.mesh_msg.type = 10
+        self.mesh_msg.header.frame_id = "map"
+        self.mesh_msg.action = self.mesh_msg.ADD
+        self.mesh_msg.scale.x = 1.5
+        self.mesh_msg.scale.y = 1.5
+        self.mesh_msg.scale.z = 1.5
+        self.mesh_msg.pose.position.x = 0.0
+        self.mesh_msg.pose.position.y = 0.0
+        self.mesh_msg.pose.position.z = 0.0
+        self.mesh_msg.pose.orientation.x = 0.0
+        self.mesh_msg.pose.orientation.y = 0.0
+        self.mesh_msg.pose.orientation.z = 0.0
+        self.mesh_msg.pose.orientation.w = 1.0
+        self.mesh_msg.color.r = 0.0
+        self.mesh_msg.color.g = 0.0
+        self.mesh_msg.color.b = 0.0
+        self.mesh_msg.color.a = 1.0
+
+        
+
+        self.rate = self.create_rate(10) # We create a Rate object of 10Hz
 
 
         
@@ -380,7 +410,7 @@ class OusterPcapReaderNode(Node):
             for scan in stream:
                 start_time = self.get_clock().now()
                 # Get sensor pose from osf
-                #T = scan.pose[1023,...]
+                T = scan.pose[1023,...]
                 #msg = Float32MultiArray()
                 #msg.data = T.flatten().tolist()
                 #self.publisher_sensor_pose.publish(msg)
@@ -388,7 +418,7 @@ class OusterPcapReaderNode(Node):
                 start_time_load_data = self.get_clock().now()
 
                 xyz = xyzlut(scan)
-                xyz = client.destagger(self.metadata, xyz)
+                xyz = client.destagger(self.metadata, xyz).astype(np.float32)
 
                 reflectivity_field = scan.field(client.ChanField.REFLECTIVITY)
                 reflectivity_img = client.destagger(stream.metadata, reflectivity_field)
@@ -454,19 +484,26 @@ class OusterPcapReaderNode(Node):
                 # xyz = xyz_hT.reshape(xyz.shape)
 
                 #Publish point cloud
+                start_time_pc_header = self.get_clock().now()
                 start_time_pc_pub= self.get_clock().now()
-                rgba = cv2.cvtColor(prev_sem_pred, cv2.COLOR_RGB2RGBA)
-                pcl2 = np.concatenate([xyz,rgba/255.0],axis=-1) 
+                #rgba = cv2.cvtColor(prev_sem_pred, cv2.COLOR_RGB2RGBA)
+                pcl2 = np.concatenate([xyz,prev_sem_pred/255.0],axis=-1)
                 pcl2 = pcl2.reshape(-1, pcl2.shape[-1])
+
+
+                
                 self.pointcloud_publisher.publish(point_cloud(pcl2, 'map', self.get_clock().now().to_msg()))
                 #self.get_logger().info('Published a point cloud')
                 
                 end_time_pc_pub= self.get_clock().now()
                 end_time = self.get_clock().now()
-                
                 self.get_logger().info('Cycle Time Publish PC: {} {}'.format(end_time_pc_pub-start_time_pc_pub, end_time-start_time))
 
-
+                
+                # load mesh
+                self.get_logger().info("Publishing the mesh topic. Use RViz to visualize.")
+                #self.mesh_msg.header.stamp = self.get_clock().now().to_msg()
+                self.mesh_publisher.publish(self.mesh_msg)
   
 
 def main(args=None):
