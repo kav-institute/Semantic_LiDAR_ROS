@@ -437,7 +437,7 @@ class OusterPcapReaderNode(Node):
         # # load mesh
         self.mesh_msg = Marker()
         self.mesh_msg.id = 1
-        self.mesh_msg.mesh_resource = 'file:////home/appuser/data/insignia_refined_v4/KAV_Forschungsfahrzeug_BakedLighting.obj'
+        self.mesh_msg.mesh_resource = 'file:////home/appuser/data/vehicle/KAV_Forschungsfahrzeug_BakedLighting.obj'
         self.mesh_msg.mesh_use_embedded_materials = True   # Need this to use textures for mesh
         self.mesh_msg.type = 10
         self.mesh_msg.header.frame_id = "map"
