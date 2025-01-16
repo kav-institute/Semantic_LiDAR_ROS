@@ -12,7 +12,7 @@ import torch.nn.functional as F
 import torchvision.models as models
 import time
 from visualization_msgs.msg import Marker
-
+import json
 
 color_map = {
   0 : [0, 0, 0],
@@ -404,14 +404,29 @@ class OusterPcapReaderNode(Node):
         self.semseg_publisher = self.create_publisher(Image, '/ouster/segmentation_image', 1)
         self.mesh_publisher = self.create_publisher(Marker, "/visualization_marker", 1)
 
-        self.metadata_path = '/home/appuser/data/Ouster/OS-2-128-992317000331-2048x10.json'
-        self.pcap_path = '/home/appuser/data/Ouster/OS-2-128-992317000331-2048x10.osf'
+        with open("/home/appuser/data/config.json") as json_data:
+            config = json.load(json_data)
+            json_data.close()
+        
+        
+        self.metadata_path = config["METADATA_PATH"]
+
+        if not config["STREAM_SENSOR"]:
+            # for recordings
+            self.pcap_path = config["OSF_PATH"]
+            self.stream_sensor = False
+        else:
+            # for sensor stream
+            self.ouster_sensor_ip = config["SENSOR_IP"]
+            self.ouster_sensor_port = config["SENSOR_PORT"]
+            self.stream_sensor = True
 
         with open(self.metadata_path, 'r') as f:
             self.metadata = client.SensorInfo(f.read())
+
         self.device = torch.device("cuda") # if torch.cuda.is_available() else "cpu")
         self.nocs_model = SemanticNetworkWithFPN(backbone='resnet34', meta_channel_dim=6, num_classes=20, attention=True, multi_scale_meta=True)
-        self.nocs_model.load_state_dict(torch.load("/home/appuser/data//model_zoo/resnet34_ANMP/model_final.pth", map_location=self.device))
+        self.nocs_model.load_state_dict(torch.load(config["MODEL_PATH"], map_location=self.device))
 
         # Training loop
         self.nocs_model.to(self.device)
@@ -422,7 +437,7 @@ class OusterPcapReaderNode(Node):
         # # load mesh
         self.mesh_msg = Marker()
         self.mesh_msg.id = 1
-        self.mesh_msg.mesh_resource = 'file:///home/appuser/ros2_ws/src/semantic_lidar_package/meshes/insignia_refined_v4/KAV_Forschungsfahrzeug_BakedLighting.obj'#'package://semantic_lidar/resource/insignia_raw_v1/mesh_medpoly.obj'
+        self.mesh_msg.mesh_resource = 'file:////home/appuser/data/insignia_refined_v4/KAV_Forschungsfahrzeug_BakedLighting.obj'
         self.mesh_msg.mesh_use_embedded_materials = True   # Need this to use textures for mesh
         self.mesh_msg.type = 10
         self.mesh_msg.header.frame_id = "map"
@@ -444,19 +459,15 @@ class OusterPcapReaderNode(Node):
         self.mesh_msg.color.b = 0.5
         self.mesh_msg.color.a = 1.0
 
-        
-
         self.rate = self.create_rate(10) # We create a Rate object of 10Hz
 
 
         
 
     def run(self):
-        if isinstance(self.pcap_path, type(None)):
-            load_scan = lambda: client.Scans.stream("fe80::4ce2:9d59:9f63:a9e0", 7502, complete=False, metadata=self.metadata)
+        if self.stream_sensor:
+            load_scan = lambda: client.Scans.stream(self.ouster_sensor_ip, self.ouster_sensor_port, complete=False, metadata=self.metadata)
         else:
-            #source = pcap.Pcap(self.pcap_path, self.metadata)
-            #load_scan = lambda:  client.Scans(source)
             load_scan = lambda:  osf.Scans(self.pcap_path)
         
         xyzlut = client.XYZLut(self.metadata)
@@ -464,11 +475,7 @@ class OusterPcapReaderNode(Node):
         with closing(load_scan()) as stream:
             for scan in stream:
                 start_time = self.get_clock().now()
-                # Get sensor pose from osf
-                T = scan.pose[1023,...]
-                #msg = Float32MultiArray()
-                #msg.data = T.flatten().tolist()
-                #self.publisher_sensor_pose.publish(msg)
+
 
                 start_time_load_data = self.get_clock().now()
 
