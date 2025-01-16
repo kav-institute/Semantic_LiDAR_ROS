@@ -82,7 +82,7 @@ Memory: 32031MiB
 [INFO] [1737031067.237311043]: Cycle Time Publish PC: 7383180 nanoseconds 42416655 nanoseconds
 ```
 
-### Model Training
+## Model Training
 Check out the following repo if you want to learn how the models are trained:
 [https://github.com/kav-institute/SemanticLiDAR](https://github.com/kav-institute/SemanticLiDAR)
 
