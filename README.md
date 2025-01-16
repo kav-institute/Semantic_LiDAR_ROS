@@ -58,4 +58,4 @@ appuser@taurus:~/ros2_ws$ ros2 run semantic_lidar_package semantic_lidar_node
 
 <a name="license"></a>
 ## License:
-This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details
+This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details. Note that the data, assets, and models are provided by a different licence!
