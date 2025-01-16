@@ -53,20 +53,9 @@ appuser@taurus:~/ros2_ws$ source install/local_setup.bash
 appuser@taurus:~/ros2_ws$ colcon build
 appuser@taurus:~/ros2_ws$ ros2 run semantic_lidar_package semantic_lidar_node
 ```
-### Model Zoo
-1. You can download pre-trained models from our model zoo:
-2. | Dataset | Backbone | Parameters | Inference Time¹ | mIoU² | Status 
-3. |:-------:|:--------:|:----------:|:---------------:|:----:|:------:|
-7. |SemanticTHAB³| [[THAB_RN34]](https://drive.google.com/drive/folders/1tmyw1RNRtcm3tHld2owxVHm1-2Fvrnzn?usp=sharing) |  28 M      |  14ms  | 72%  | $${\color{green}Online}$$ 
+### Assets:
 
-For this demo we use the THAB_RN34.
-Download the .pth file to:
-```bash
-├── dataset
-│   ├── model_zoo
-│   │   └── THAB_RN34
-│   │   │   └── model_final.pth
-```
+
 <a name="license"></a>
 ## License:
 This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details
