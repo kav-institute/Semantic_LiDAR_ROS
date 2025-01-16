@@ -3,7 +3,15 @@
 A docker container with ROS2 and a ROS2 Package for LiDAR semantic segmentation
 ![rgbImage](images/rviz_screenshot_2024_06_04-12_34_34.png)
 
-## Development environment:
+## Environment:
+### Setup
+Read the [DATA.md](dataset/DATA.md) to learn how to configure the demonstration system.
+
+### Assets:
+We created an asset pack containing meshes, sensor recordings and pretrained models.
+You can download the assets from Zenodo. 
+> [!CAUTION]
+> The content of the asset pack is not provided by Apache 2.0 License.
 
 ### VS-Code:
 The project is designed to be delevoped within vs-code IDE using remote container development.
@@ -17,14 +25,17 @@ sudo xhost +
 sh setup.sh
 
 # Build the image from scratch using Dockerfile, can be skipped if image already exists or is loaded from docker registry
-docker-compose build --no-cache
+docker compose build --no-cache
 
 # Start the container
-docker-compose up -d
+docker compose up -d
 
 # Stop the container
-docker-compose down
+docker compose down
 ```
+
+> [!CAUTION]
+> xhost + is not a save operation!
 
 ### Set Up in VS Code
 #### Possibility 1: (Preferred)
@@ -53,7 +64,7 @@ appuser@taurus:~/ros2_ws$ source install/local_setup.bash
 appuser@taurus:~/ros2_ws$ colcon build
 appuser@taurus:~/ros2_ws$ ros2 run semantic_lidar_package semantic_lidar_node
 ```
-### Assets:
+
 
 
 <a name="license"></a>
