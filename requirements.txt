@@ -2,4 +2,4 @@ tensorboard
 open3d
 termcolor
 tqdm
-ouster-sdk
+ouster-sdk==0.12.0
