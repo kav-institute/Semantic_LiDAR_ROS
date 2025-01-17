@@ -13,6 +13,8 @@ You can download the assets from Zenodo.
 > [!CAUTION]
 > The content of the asset pack is not provided by Apache 2.0 License.
 
+[https://zenodo.org/records/14677379](https://zenodo.org/records/14677379)
+
 ### VS-Code:
 The project is designed to be delevoped within vs-code IDE using remote container development.
 
