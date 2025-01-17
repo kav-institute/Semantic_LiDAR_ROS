@@ -1,8 +1,8 @@
 {
     "METADATA_PATH": "/home/appuser/data/recordings/Test_Scene_0000/OS-2-128-992317000331-2048x10.json",
     "OSF_PATH": "/home/appuser/data/recordings/Test_Scene_0000/OS-2-128-992317000331-2048x10.osf",
-    "MODEL_PATH": "/home/appuser/data/models/resnet34_ANMP/model_final.pth",
-    "MODEL_CONFIG": "/home/appuser/data/models/resnet34_ANMP/config.json",
+    "MODEL_PATH": "/home/appuser/data/models/resnet34_anmp/model_final.pth",
+    "MODEL_CONFIG": "/home/appuser/data/models/resnet34_anmp/config.json",
     "SENSOR_IP": "fe80::4ce2:9d59:9f63:a9e0", 
     "SENSOR_PORT": 7502,
     "STREAM_SENSOR": false 
