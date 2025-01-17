@@ -38,16 +38,18 @@ color_map = {
   20: [0, 250, 0]
 }
 
-# Create the custom color map
-custom_colormap = np.zeros((256, 1, 3), dtype=np.uint8)
+def create_custom_color_map(color_map):
+    # Create the custom color map
+    custom_colormap = np.zeros((256, 1, 3), dtype=np.uint8)
 
-for i in range(256):
-    if i in color_map:
-        custom_colormap[i, 0, :] = color_map[i]
-    else:
-        # If the index is not defined in the color map, set it to black
-        custom_colormap[i, 0, :] = [0, 0, 0]
-custom_colormap = custom_colormap[...,::-1]
+    for i in range(256):
+        if str(i) in color_map:
+            custom_colormap[i, 0, :] = color_map[str(i)]
+        else:
+            # If the index is not defined in the color map, set it to black
+            custom_colormap[i, 0, :] = [0, 0, 0]
+    custom_colormap = custom_colormap[...,::-1]
+    return np.uint8(custom_colormap)
 
 class AttentionModule(nn.Module):
     def __init__(self, in_channels, out_channels):
@@ -329,6 +331,8 @@ class SemanticNetworkWithFPN(nn.Module):#
         x_semantics = self.decoder_semantic(x) + 1 # offset of 1 to shift elu to ]0,inf[
         
         return x_semantics
+    
+
 
 
 def build_normal_xyz(xyz, norm_factor=0.25, device='cuda'):
@@ -407,7 +411,17 @@ class OusterPcapReaderNode(Node):
         with open("/home/appuser/data/config.json") as json_data:
             config = json.load(json_data)
             json_data.close()
+
+        with open(config["MODEL_CONFIG"]) as json_data:
+            model_config = json.load(json_data)
+            json_data.close()
+
+        # create color map
+        self.color_map = create_custom_color_map(model_config["CLASS_COLORS"])
+        print(self.color_map)
         
+        # create flag to use normals
+        self.use_normals = model_config["USE_NORMALS"]
         
         self.metadata_path = config["METADATA_PATH"]
 
@@ -425,7 +439,10 @@ class OusterPcapReaderNode(Node):
             self.metadata = client.SensorInfo(f.read())
 
         self.device = torch.device("cuda") # if torch.cuda.is_available() else "cpu")
-        self.nocs_model = SemanticNetworkWithFPN(backbone='resnet34', meta_channel_dim=6, num_classes=20, attention=True, multi_scale_meta=True)
+        if model_config["USE_NORMALS"]:
+            self.nocs_model = SemanticNetworkWithFPN(backbone=model_config["BACKBONE"], meta_channel_dim=6, num_classes=model_config["NUM_CLASSES"], attention=model_config["USE_ATTENTION"], multi_scale_meta=model_config["USE_MULTI_SCALE"])
+        else:
+            self.nocs_model = SemanticNetworkWithFPN(backbone=model_config["BACKBONE"], meta_channel_dim=3, num_classes=model_config["NUM_CLASSES"], attention=model_config["USE_ATTENTION"], multi_scale_meta=model_config["USE_MULTI_SCALE"])
         self.nocs_model.load_state_dict(torch.load(config["MODEL_PATH"], map_location=self.device))
 
         # Training loop
@@ -501,7 +518,10 @@ class OusterPcapReaderNode(Node):
                 normals = build_normal_xyz(xyz_, norm_factor=0.25, device='cuda')
                 range_img = torch.norm(xyz_, dim=1, keepdim=True) #+ 1e-10
 
-                outputs_semantic = self.nocs_model(torch.cat([range_img, reflectivity],axis=1), torch.cat([xyz_, normals],axis=1))
+                if self.use_normals:
+                    outputs_semantic = self.nocs_model(torch.cat([range_img, reflectivity],axis=1), torch.cat([xyz_, normals],axis=1))
+                else:
+                    outputs_semantic = self.nocs_model(torch.cat([range_img, reflectivity],axis=1), xyz_)
 
                 semseg_img = torch.argmax(outputs_semantic,dim=1)
 
@@ -514,7 +534,7 @@ class OusterPcapReaderNode(Node):
                 start_time_vis= self.get_clock().now()
                 semantics_pred = (semseg_img).permute(0, 1, 2)[0,...].cpu().detach().numpy()
                 idx_VRUs = np.where(semantics_pred==6)
-                prev_sem_pred = cv2.applyColorMap(np.uint8(semantics_pred), custom_colormap)
+                prev_sem_pred = cv2.applyColorMap(np.uint8(semantics_pred), self.color_map)
                 end_time_vis= self.get_clock().now()
                 self.get_logger().info('Cycle Time Vis: {} {}'.format(end_time_vis-start_time_vis, end_time_vis-start_time))
 
