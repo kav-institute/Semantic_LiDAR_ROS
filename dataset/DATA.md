@@ -1,4 +1,18 @@
 # Setup
+
+[https://zenodo.org/records/14677379](https://zenodo.org/records/14677379)
+
+Donwload the asset pack from Zenodo [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14677379.svg)](https://doi.org/10.5281/zenodo.14677379) and extrackt the files to the dataset folder.
+Ensure the following structure:
+
+```
+dataset
+└───models
+└───recordings
+└───vehicles
+└───config.json
+```
+
 ## Sample Recordings
 We provide three sampe recordings.
 You can select the recording by changing the path in the config.json
