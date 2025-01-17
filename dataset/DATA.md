@@ -9,7 +9,7 @@ Ensure the following structure:
 dataset
 └───models
 └───recordings
-└───vehicles
+└───vehicle
 └───config.json
 ```
 
