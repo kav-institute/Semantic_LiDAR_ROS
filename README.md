@@ -7,7 +7,7 @@ A docker container with ROS2 and a ROS2 Package for LiDAR semantic segmentation
 ### Setup
 Read the [DATA.md](dataset/DATA.md) to learn how to configure the demonstration system.
 
-### Assets:
+### Assets [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14677379.svg)](https://doi.org/10.5281/zenodo.14677379):
 We created an asset pack containing meshes, sensor recordings and pretrained models.
 You can download the assets from Zenodo. 
 > [!CAUTION]
