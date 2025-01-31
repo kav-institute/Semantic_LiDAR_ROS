@@ -3,11 +3,11 @@
 A docker container with ROS2 and a ROS2 Package for LiDAR semantic segmentation
 ![rgbImage](images/rviz_screenshot_2024_06_04-12_34_34.png)
 
-## Environment:
+## Environment
 ### Setup
 Read the [DATA.md](dataset/DATA.md) to learn how to configure the demonstration system.
 
-### Assets [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14677379.svg)](https://doi.org/10.5281/zenodo.14677379):
+### Assets [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14677379.svg)](https://doi.org/10.5281/zenodo.14677379)
 We created an asset pack containing meshes, sensor recordings and pretrained models.
 You can download the assets from Zenodo. 
 > [!CAUTION]
@@ -15,7 +15,7 @@ You can download the assets from Zenodo.
 
 [https://zenodo.org/records/14677379](https://zenodo.org/records/14677379)
 
-### VS-Code:
+### VS-Code
 The project is designed to be delevoped within vs-code IDE using remote container development.
 
 ### Setup Docker Container
@@ -40,7 +40,7 @@ docker compose down
 > xhost + is not a save operation!
 
 ### Set Up in VS Code
-#### Possibility 1: (Preferred)
+#### Possibility 1 (Preferred)
 
 #### 1. Step: Executing the first task "rviz start" to start rviz 
 Hit menu item "Terminal" and chose "Run Task...":
@@ -50,7 +50,7 @@ Hit menu item "Terminal" and chose "Run Task...":
 Hit menu item "Terminal" and chose "Run Task...":
  -> execute the task "SemanticLiDAR start" -> Rviz window shows the output of the semantic node
 
-#### Possibility 2: 
+#### Possibility 2 
 In VS Code open two terminals:
 ```bash
 # Terminal 1, start RVIZ
@@ -89,5 +89,12 @@ Check out the following repo if you want to learn how the models are trained:
 [https://github.com/kav-institute/SemanticLiDAR](https://github.com/kav-institute/SemanticLiDAR)
 
 <a name="license"></a>
-## License:
+## License
 This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details. Note that the data, assets, and models are provided by a different licence!
+
+## Contributors
+<a href="https://github.com/kav-institute/Semantic_LiDAR_ROS/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=kav-institute/Semantic_LiDAR_ROS" />
+</a>
+
+Made with [contrib.rocks](https://contrib.rocks).
