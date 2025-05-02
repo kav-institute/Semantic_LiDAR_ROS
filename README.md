@@ -1,4 +1,4 @@
-# Semantic_LiDAR_ROS [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14677379.svg)](https://doi.org/10.5281/zenodo.14677379)
+# Semantic_LiDAR_ROS [![arXiv Badge](https://img.shields.io/badge/arXiv-B31B1B?logo=arxiv&logoColor=fff&style=flat)](https://arxiv.org/abs/2504.21602) [![ResearchGate Badge](https://img.shields.io/badge/ResearchGate-0CB?logo=researchgate&logoColor=fff&style=flat)](https://www.researchgate.net/publication/391328948_Real_Time_Semantic_Segmentation_of_High_Resolution_Automotive_LiDAR_Scans) [![Zenodo Badge](https://img.shields.io/badge/Zenodo-1682D4?logo=zenodo&logoColor=fff&style=flat)]([https://zenodo.org/records/14906179](https://doi.org/10.5281/zenodo.14677379)) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14677379.svg)](https://doi.org/10.5281/zenodo.14677379)
 
 A docker container with ROS2 and a ROS2 Package for LiDAR semantic segmentation
 ![rgbImage](images/rviz_screenshot_2024_06_04-12_34_34.png)
@@ -91,6 +91,36 @@ Check out the following repo if you want to learn how the models are trained:
 <a name="license"></a>
 ## License
 This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details. Note that the data, assets, and models are provided by a different licence!
+
+
+## Citation:
+```
+@misc{reichert2025realtimesemanticsegmentation,
+      title={Real Time Semantic Segmentation of High Resolution Automotive LiDAR Scans}, 
+      author={Hannes Reichert and Benjamin Serfling and Elijah Schüssler and Kerim Turacan and Konrad Doll and Bernhard Sick},
+      year={2025},
+      eprint={2504.21602},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO},
+      url={https://arxiv.org/abs/2504.21602}, 
+}
+
+@dataset{reichert_2025_14906179,
+  author       = {Reichert, Hannes and
+                  Schüssler, Elijah and
+                  Serfling, Benjamin and
+                  Turacan, Kerim and
+                  Doll, Konrad and
+                  Sick, Bernhard},
+  title        = {SemanticTHAB: A High Resolution LiDAR Dataset},
+  month        = feb,
+  year         = 2025,
+  publisher    = {Zenodo},
+  doi          = {10.5281/zenodo.14906179},
+  url          = {https://doi.org/10.5281/zenodo.14906179},
+}
+```
+
 
 ## Contributors
 <a href="https://github.com/kav-institute/Semantic_LiDAR_ROS/graphs/contributors">
