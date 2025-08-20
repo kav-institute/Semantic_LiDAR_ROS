@@ -98,7 +98,7 @@ class SemanticNetworkWithFPN(nn.Module):#
         attention (bool): Option to use a attention mechanism in the FPN (see: https://arxiv.org/pdf/1706.03762.pdf)
         
     """
-    def __init__(self, backbone='resnet18', meta_channel_dim=3, interpolation_mode = 'nearest', num_classes = 3, attention=True, multi_scale_meta=True):
+    def __init__(self, backbone='resnet18', input_channels=2, meta_channel_dim=3, interpolation_mode = 'nearest', num_classes = 3, attention=True, multi_scale_meta=True):
         super(SemanticNetworkWithFPN, self).__init__()
 
         self.backbone_name = backbone
@@ -146,6 +146,18 @@ class SemanticNetworkWithFPN(nn.Module):#
         elif backbone == 'squeezenet1_0':
             self.backbone = models.squeezenet1_0(pretrained=True)
             base_channels = [512, 384, 256, 256, 112]
+        elif backbone == 'efficientnet_v2_s':
+            # Use EfficientNetV2-S from torchvision
+            self.backbone = models.efficientnet_v2_s(pretrained=True)
+            base_channels = [128, 128, 64, 48, 168] 
+        elif backbone == 'efficientnet_v2_m':
+            # Use EfficientNetV2-S from torchvision
+            self.backbone = models.efficientnet_v2_m(pretrained=True)
+            base_channels = [160, 160, 80, 48, 168] 
+        elif backbone == 'efficientnet_v2_l':
+            # Use EfficientNetV2-S from torchvision
+            self.backbone = models.efficientnet_v2_l(pretrained=True)
+            base_channels = [192, 192, 96, 64, 168] 
         else:
             raise ValueError("Invalid ResNet type. Supported types: 'resnet18', 'resnet34', 'resnet50', 'regnet_y_400mf','regnet_y_800mf', 'regnet_y_1_6gf', 'regnet_y_3_2gf', 'shufflenet_v2_x0_5', 'shufflenet_v2_x1_0', 'shufflenet_v2_x1_5', 'shufflenet_v2_x2_0.")
         
@@ -156,7 +168,7 @@ class SemanticNetworkWithFPN(nn.Module):#
         is_squeeze = False
         # extract features from resnet family
         if backbone in ['resnet18', 'resnet34', 'resnet50']:
-            self.backbone.conv1 = nn.Conv2d(2 + meta_channel_dim, 64, kernel_size=3, stride=1, padding=1, bias=False)
+            self.backbone.conv1 = nn.Conv2d(input_channels + meta_channel_dim, 64, kernel_size=3, stride=1, padding=1, bias=False)
 
             # Extract feature maps from different layers of ResNet
             self.stem = nn.Sequential(self.backbone.conv1, self.backbone.relu, self.backbone.maxpool)
@@ -183,7 +195,7 @@ class SemanticNetworkWithFPN(nn.Module):#
             
         # extract features from regnet family
         elif backbone in ['regnet_y_400mf','regnet_y_800mf', 'regnet_y_1_6gf', 'regnet_y_3_2gf']:
-            self.backbone.stem[0] = nn.Conv2d(2 + meta_channel_dim, self.backbone.stem[0].out_channels, kernel_size=3, stride=1, padding=1, bias=False)
+            self.backbone.stem[0] = nn.Conv2d(input_channels + meta_channel_dim, self.backbone.stem[0].out_channels, kernel_size=3, stride=1, padding=1, bias=False)
             # Extract feature maps from different layers of RegNet
             self.stem = self.backbone.stem
             self.layer1 = self.backbone.trunk_output[0]
@@ -192,7 +204,7 @@ class SemanticNetworkWithFPN(nn.Module):#
             self.layer4 = self.backbone.trunk_output[3]
 
         elif backbone in ["shufflenet_v2_x0_5", "shufflenet_v2_x1_0", "shufflenet_v2_x1_5", "shufflenet_v2_x2_0"]:
-            self.backbone.conv1[0] = nn.Conv2d(2 + meta_channel_dim, self.backbone.conv1[0].out_channels, kernel_size=3, stride=1, padding=1, bias=False)
+            self.backbone.conv1[0] = nn.Conv2d(input_channels + meta_channel_dim, self.backbone.conv1[0].out_channels, kernel_size=3, stride=1, padding=1, bias=False)
             #help_conv = nn.Conv2d(2 + meta_channel_dim, self.backbone.conv1[0].out_channels, kernel_size=3, stride=2, padding=1, bias=False)
             # Extract feature maps using indices or named stages from ShuffleNet
             self.stem = self.backbone.conv1
@@ -200,6 +212,17 @@ class SemanticNetworkWithFPN(nn.Module):#
             self.layer2 = self.backbone.stage3
             self.layer3 = self.backbone.stage4
             self.layer4 = self.backbone.conv5
+            is_shuffle = True
+
+        elif backbone in ["efficientnet_v2_s", "efficientnet_v2_m","efficientnet_v2_l"]:
+            self.backbone.features[0][0] = nn.Conv2d(input_channels + meta_channel_dim, self.backbone.features[0][0].out_channels, kernel_size=3, stride=1, padding=1, bias=False)
+            #help_conv = nn.Conv2d(2 + meta_channel_dim, self.backbone.conv1[0].out_channels, kernel_size=3, stride=2, padding=1, bias=False)
+            # Extract feature maps using indices or named stages from ShuffleNet
+            self.stem = self.backbone.features[0]
+            self.layer1 = self.backbone.features[2]
+            self.layer2 = self.backbone.features[3]
+            self.layer3 = self.backbone.features[4]
+            self.layer4 = self.backbone.features[6:]
             is_shuffle = True
 
         # Attention blocks
@@ -233,6 +256,7 @@ class SemanticNetworkWithFPN(nn.Module):#
             self.upsample_layer_x3 = nn.ConvTranspose2d(in_channels=base_channels[2], out_channels=base_channels[2]//4, kernel_size=4, stride=4, padding=0)
             self.upsample_layer_x2 = nn.ConvTranspose2d(in_channels=base_channels[3], out_channels=base_channels[3]//2, kernel_size=2, stride=2, padding=0)
             out_channels_upsample = base_channels[1]//8 + base_channels[2]//4 + base_channels[3]//2
+        
 
 
         self.decoder_semantic = nn.Sequential(
@@ -284,16 +308,37 @@ class SemanticNetworkWithFPN(nn.Module):#
             meta_channel1 = F.interpolate(meta_channel, scale_factor=1/2, mode=self.interpolation_mode)
             meta_channel2 = F.interpolate(meta_channel, scale_factor=1/4, mode=self.interpolation_mode)
             meta_channel3 = F.interpolate(meta_channel, scale_factor=1/8, mode=self.interpolation_mode)
-            x = torch.cat([x, meta_channel], dim=1)
-            xs = self.stem(x)
-            x1 = self.layer1(xs)
-            x = torch.cat([x1[:,0:-self.meta_channel_dim,...], meta_channel1], dim=1)
-            x2 = self.layer2(x)
-            x = torch.cat([x2[:,0:-self.meta_channel_dim,...], meta_channel2], dim=1)
-            x3 = self.layer3(x)
-            x = torch.cat([x3[:,0:-self.meta_channel_dim,...], meta_channel3], dim=1)
-            x4 = self.layer4(x)
+            
+            if self.backbone_name in ["squeezenet1_0"]:
+                x = torch.cat([x, meta_channel], dim=1)
+                xs = self.stem(x)
+                x1 = self.layer1(xs)
+                x = torch.cat([x1[:,0:-self.meta_channel_dim,...], meta_channel1], dim=1)
+                x2 = self.layer2(x)
+                x = torch.cat([x2[:,0:-self.meta_channel_dim,...], meta_channel2], dim=1)
+                x3 = self.layer3(x)
+                x4 = self.layer4(x3)
+            elif self.backbone_name in ["efficientnet_v2_s","efficientnet_v2_m","efficientnet_v2_l"]:
+                x = torch.cat([x, meta_channel], dim=1)
+                xs = self.stem(x)
+                x1 = self.layer1(xs)
+                x = torch.cat([x1[:,0:-self.meta_channel_dim,...], meta_channel1], dim=1)
+                x2 = self.layer2(x)
+                x = torch.cat([x2[:,0:-self.meta_channel_dim,...], meta_channel2], dim=1)
+                x3 = self.layer3(x)
+                x4 = torch.cat([x3[:,0:-self.meta_channel_dim,...], meta_channel3], dim=1)
+            else:
+                x = torch.cat([x, meta_channel], dim=1)
+                xs = self.stem(x)
+                x1 = self.layer1(xs)
+                x = torch.cat([x1[:,0:-self.meta_channel_dim,...], meta_channel1], dim=1)
+                x2 = self.layer2(x)
+                x = torch.cat([x2[:,0:-self.meta_channel_dim,...], meta_channel2], dim=1)
+                x3 = self.layer3(x)
+                x = torch.cat([x3[:,0:-self.meta_channel_dim,...], meta_channel3], dim=1)
+                x4 = self.layer4(x)
 
+            
         else:
         
             # Encoder (ResNet)
@@ -324,6 +369,7 @@ class SemanticNetworkWithFPN(nn.Module):#
         x2 = self.upsample_layer_x2(x2)
 
         # Concatenate feature maps
+
         x = torch.cat([x1, x2, x3, x4], dim=1)
 
 
@@ -331,8 +377,42 @@ class SemanticNetworkWithFPN(nn.Module):#
         x_semantics = self.decoder_semantic(x) + 1 # offset of 1 to shift elu to ]0,inf[
         
         return x_semantics
-    
 
+def to_alpha_concentrations(predicted_logits: torch.Tensor):
+    """Converts model's output Tensor to alpha concentrations (alpha > 0)
+
+    Args:
+        predicted_logits (torch.Tensor): output Tensor of the model with shape [B, C, H, W]
+
+    Returns:
+        torch.Tensor: strictly positive Tensor with Dirchlet + 1 adjustment
+    """
+    return torch.nn.functional.softplus(predicted_logits)+1
+
+def get_predictive_entropy(alpha, eps=1e-10):
+    """
+    Computes predictive entropy H(E[p]) from Dirichlet parameters.
+    H(E[p]) = -∑_j (α_j/α₀) · log(α_j/α₀)
+    
+    From paper: Information Aware Max-Norm Dirichlet Networks for Predictive Uncertainty Estimation (Tsiligkaridis)
+    https://arxiv.org/abs/1910.04819 
+    
+    Args:
+        alpha: Tensor of shape [B, C, H, W], Dirichlet parameters per class
+
+    Returns:
+        Tensor of shape [B, H, W], entropy of expected class probabilities
+    """
+    
+    # α₀ = ∑_j α_j
+    alpha_0 = torch.sum(alpha, dim=1, keepdim=True) + eps               # Total concentration alpha_0
+    
+    # E[p_j] = α_j / α₀
+    Exp_prob = alpha / alpha_0                                          # Expected class probabilities
+    
+    # H(E[p]) = -∑_j E[p_j] · log(E[p_j])
+    entropy = -torch.sum(Exp_prob * torch.log(Exp_prob + eps), dim=1)   # Entropy across classes
+    return entropy
 
 
 def build_normal_xyz(xyz, norm_factor=0.25, device='cuda'):
@@ -419,6 +499,7 @@ class OusterPcapReaderNode(Node):
         # create color map
         self.color_map = create_custom_color_map(model_config["CLASS_COLORS"])
         print(self.color_map)
+        self.num_classes = model_config["NUM_CLASSES"]
         
         # create flag to use normals
         self.use_normals = model_config["USE_NORMALS"]
@@ -522,6 +603,19 @@ class OusterPcapReaderNode(Node):
                     outputs_semantic = self.nocs_model(torch.cat([range_img, reflectivity],axis=1), torch.cat([xyz_, normals],axis=1))
                 else:
                     outputs_semantic = self.nocs_model(torch.cat([range_img, reflectivity],axis=1), xyz_)
+                
+                # predictive entropy /total uncertainty (H)
+                alpha = to_alpha_concentrations(outputs_semantic)
+                pred_entropy = get_predictive_entropy(alpha)
+                pred_entropy = (pred_entropy).permute(0, 1, 2)[0,...].cpu().detach().numpy()    # [B,H,W] -> [B,W,H] and use first element in batch
+                
+                # normalization: maximum uncertainty with "flattest" Dirichlet, which is at α_j=1 ∀j:
+                # H = -∑_j (α_j / α₀) * ln(α_j / α₀)
+                # at α_j=1 ∀j -> H_max = -∑_j (1/K) * ln(1/K) = ln(K)
+                pred_entropy_norm = pred_entropy/np.log(self.num_classes)
+                
+                # pred_entropy_img = cv2.applyColorMap(np.uint8(255*np.maximum(2*(pred_entropy_norm - 0.5), 0.0)), cv2.COLORMAP_TURBO)
+                pred_entropy_img = cv2.applyColorMap(np.uint8(255*np.maximum(pred_entropy_norm, 0.0)), colormap=cv2.COLORMAP_TURBO)
 
                 semseg_img = torch.argmax(outputs_semantic,dim=1)
 
@@ -540,6 +634,8 @@ class OusterPcapReaderNode(Node):
 
                 start_time_img_pub= self.get_clock().now()
                 prev_sem_pred_ = cv2.resize(prev_sem_pred,(1024,64), interpolation = cv2.INTER_NEAREST)
+                #pred_entropy_img_ = cv2.resize(pred_entropy_img,(1024,64), interpolation = cv2.INTER_NEAREST)[...,::-1]
+                #prev_sem_pred_ = np.vstack((pred_entropy_img_,prev_sem_pred_))
                 segment_msg = Image()
                 segment_msg.header.stamp = self.get_clock().now().to_msg()
                 segment_msg.header.frame_id = 'ouster_frame'
@@ -554,12 +650,12 @@ class OusterPcapReaderNode(Node):
                 end_time_img_pub= self.get_clock().now()
                 self.get_logger().info('Cycle Time Publish Image: {} {}'.format(end_time_img_pub-start_time_img_pub, end_time_img_pub-start_time))
 
-
-
+            
                 #Publish point cloud
                 start_time_pc_header = self.get_clock().now()
                 start_time_pc_pub= self.get_clock().now()
                 #rgba = cv2.cvtColor(prev_sem_pred, cv2.COLOR_RGB2RGBA)
+                #pcl2 = np.concatenate([xyz,pred_entropy_img[...,::-1]/255.0],axis=-1)
                 pcl2 = np.concatenate([xyz,prev_sem_pred/255.0],axis=-1)
                 pcl2 = pcl2.reshape(-1, pcl2.shape[-1])
 
