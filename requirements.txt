@@ -1,6 +1,2 @@
-tensorboard
-open3d==0.19.0
-termcolor
-tqdm
 ouster-sdk==0.12.0
 numpy==1.26.4
