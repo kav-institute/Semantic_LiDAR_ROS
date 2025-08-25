@@ -1,4 +1,4 @@
-# Semantic_LiDAR_ROS [![arXiv Badge](https://img.shields.io/badge/arXiv-B31B1B?logo=arxiv&logoColor=fff&style=flat)](https://arxiv.org/abs/2504.21602) [![ResearchGate Badge](https://img.shields.io/badge/ResearchGate-0CB?logo=researchgate&logoColor=fff&style=flat)](https://www.researchgate.net/publication/391328948_Real_Time_Semantic_Segmentation_of_High_Resolution_Automotive_LiDAR_Scans) [![Zenodo Badge](https://img.shields.io/badge/Zenodo-1682D4?logo=zenodo&logoColor=fff&style=flat)]([https://zenodo.org/records/14906179](https://doi.org/10.5281/zenodo.14677379)) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14677379.svg)](https://doi.org/10.5281/zenodo.14677379)
+# Semantic_LiDAR_ROS [![arXiv Badge](https://img.shields.io/badge/arXiv-B31B1B?logo=arxiv&logoColor=fff&style=flat)](https://arxiv.org/abs/2504.21602) [![ResearchGate Badge](https://img.shields.io/badge/ResearchGate-0CB?logo=researchgate&logoColor=fff&style=flat)](https://www.researchgate.net/publication/391328948_Real_Time_Semantic_Segmentation_of_High_Resolution_Automotive_LiDAR_Scans) [![Zenodo Badge](https://img.shields.io/badge/Zenodo-1682D4?logo=zenodo&logoColor=fff&style=flat)]([https://doi.org/10.5281/zenodo.16909829](https://doi.org/10.5281/zenodo.16909829)) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16909829.svg)](https://doi.org/10.5281/zenodo.16909829)
 
 A docker container with ROS2 and a ROS2 Package for LiDAR semantic segmentation
 ![rgbImage](images/rviz_screenshot_2024_06_04-12_34_34.png)
@@ -7,13 +7,13 @@ A docker container with ROS2 and a ROS2 Package for LiDAR semantic segmentation
 ### Setup
 Read the [DATA.md](dataset/DATA.md) to learn how to configure the demonstration system.
 
-### Assets [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.14677379.svg)](https://doi.org/10.5281/zenodo.14677379)
+### Assets [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16909829.svg)](https://doi.org/10.5281/zenodo.16909829)
 We created an asset pack containing meshes, sensor recordings and pretrained models.
 You can download the assets from Zenodo. 
 > [!CAUTION]
 > The content of the asset pack is not provided by Apache 2.0 License.
 
-[https://zenodo.org/records/14677379](https://zenodo.org/records/14677379)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.16909829.svg)](https://doi.org/10.5281/zenodo.16909829)
 
 ### VS-Code
 The project is designed to be delevoped within vs-code IDE using remote container development.
@@ -105,19 +105,16 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENS
       url={https://arxiv.org/abs/2504.21602}, 
 }
 
-@dataset{reichert_2025_14906179,
-  author       = {Reichert, Hannes and
-                  Schüssler, Elijah and
-                  Serfling, Benjamin and
-                  Turacan, Kerim and
-                  Doll, Konrad and
-                  Sick, Bernhard},
-  title        = {SemanticTHAB: A High Resolution LiDAR Dataset},
-  month        = feb,
+@dataset{reichert_2025_16909829,
+  author       = {Reichert, Hannes},
+  title        = {Asset Pack For SemanticLiDAR ROS2 Demonstration
+                   System
+                  },
+  month        = aug,
   year         = 2025,
   publisher    = {Zenodo},
-  doi          = {10.5281/zenodo.14906179},
-  url          = {https://doi.org/10.5281/zenodo.14906179},
+  doi          = {10.5281/zenodo.16909829},
+  url          = {https://doi.org/10.5281/zenodo.16909829},
 }
 ```
 
