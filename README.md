@@ -88,6 +88,11 @@ Memory: 32031MiB
 Check out the following repo if you want to learn how the models are trained:
 [https://github.com/kav-institute/SemanticLiDAR](https://github.com/kav-institute/SemanticLiDAR)
 
+
+> [!CAUTION]
+> The SemanticLiDAR-ROS repo and its network defintion is behind the main branch of SemanticLiDAR. Use release [v.1.2.0](https://github.com/kav-institute/SemanticLiDAR/releases/tag/v1.2.0)
+
+
 <a name="license"></a>
 ## License
 This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENSE) file for details. Note that the data, assets, and models are provided by a different licence!
