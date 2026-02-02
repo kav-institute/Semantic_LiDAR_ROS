@@ -123,7 +123,6 @@ This project is licensed under the Apache 2.0 License - see the [LICENSE](LICENS
 }
 ```
 
-
 ## Contributors
 <a href="https://github.com/kav-institute/Semantic_LiDAR_ROS/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=kav-institute/Semantic_LiDAR_ROS" />
